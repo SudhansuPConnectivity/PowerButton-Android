@@ -714,6 +714,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     // Behavior of ENDCALL Button.  (See Settings.System.END_BUTTON_BEHAVIOR.)
     int mEndcallBehavior;
+	
+	//Behavior of long press power shotdown 
+	final long mLongPowerKeyPressShutDownTime = 5000;
+    final long mPowerKeyPressTime = 0;
+	
 
     // Behavior of POWER button while in-call and screen on.
     // (See Settings.Secure.INCALL_POWER_BUTTON_BEHAVIOR.)
@@ -1322,19 +1327,23 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 // When interactive, we're already awake.
                 // Wait for a long press or for the button to be released to decide what to do.
                 if (hasLongPressOnPowerBehavior()) {
-                    Message msg = mHandler.obtainMessage(MSG_POWER_LONG_PRESS);
+                    /*Message msg = mHandler.obtainMessage(MSG_POWER_LONG_PRESS);
                     msg.setAsynchronous(true);
                     mHandler.sendMessageDelayed(msg,
-                            ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());
+                            ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());*/
+							
+					mPowerKeyPressTime = event.getDownTime();
                 }
             } else {
                 wakeUpFromPowerKey(event.getDownTime());
 
                 if (mSupportLongPressPowerWhenNonInteractive && hasLongPressOnPowerBehavior()) {
-                    Message msg = mHandler.obtainMessage(MSG_POWER_LONG_PRESS);
+                    /*Message msg = mHandler.obtainMessage(MSG_POWER_LONG_PRESS);
                     msg.setAsynchronous(true);
                     mHandler.sendMessageDelayed(msg,
-                            ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());
+                            ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());*/
+							
+					mPowerKeyPressTime = event.getDownTime();
                     mBeganFromNonInteractive = true;
                 } else {
                     final int maxCount = getMaxMultiPressPowerCount();
@@ -1368,6 +1377,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         interactive ? 1 : 0, mPowerKeyPressCounter, eventTime);
                 msg.setAsynchronous(true);
                 mHandler.sendMessageDelayed(msg, ViewConfiguration.getMultiPressTimeout());
+                return;
+            }
+			
+			//On long press release of power button, system goes to hard shut down mode
+            // without display global action menu if press time is more or equal to 5000 milis.
+             if((mPowerKeyPressTime - eventTime) >= mLongPowerKeyPressShutDownTime){
+                Message msg = mHandler.obtainMessage(MSG_POWER_LONG_PRESS);
+                msg.setAsynchronous(true);
+                mHandler.sendMessageDelayed(msg, mHandler.sendMessageDelayed(msg,
+                        ViewConfiguration.get(mContext).getDeviceGlobalActionKeyTimeout());
                 return;
             }
 
@@ -1594,7 +1613,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         if (FactoryTest.isLongPressOnPowerOffEnabled()) {
             return LONG_PRESS_POWER_SHUT_OFF_NO_CONFIRM;
         }
-        return mLongPressOnPowerBehavior;
+        return LONG_PRESS_POWER_SHUT_OFF;
     }
 
     private boolean hasLongPressOnPowerBehavior() {
